@@ -172,6 +172,17 @@ namespace Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.Design.Internal
             var compilation = compiler.CreateCompilation(assemblyname);
             var syntaxTrees = new SyntaxTree[results.Length];
 
+            string[] additionalReferences = new string[]
+            {
+                @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6\Microsoft.CSharp.dll",
+                //@"C:\Users\jbato\.nuget\packages\Microsoft.DiaSymReader.Native\1.4.0\runtimes\win-x64\native\Microsoft.DiaSymReader.Native.amd64.dll",
+            };
+
+            compilation = compilation.AddReferences(additionalReferences.Select(r => MetadataReference.CreateFromFile(r)));
+
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            compilation = compilation.AddReferences(assemblies.Where(a => !a.IsDynamic).Select(a => MetadataReference.CreateFromFile(a.Location)));
+
             Parallel.For(0, results.Length, ParalellOptions, i =>
             {
                 var result = results[i];

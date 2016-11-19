@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.Design.Internal;
@@ -16,14 +17,51 @@ namespace Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.Design
         {
 #if DEBUG
             DebugHelper.HandleDebugSwitch(ref args);
+
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
 #endif
 
             EnsureValidDispatchRecipient(ref args);
 
             var app = new PrecompilationApplication(ProgramType);
             new PrecompileRunCommand().Configure(app);
-            return app.Execute(args);
+
+            int result = app.Execute(args);
+
+#if DEBUG
+            Console.ReadLine();
+#endif
+
+            return result;
         }
+
+#if DEBUG
+        private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            AssemblyName assemblyName = new AssemblyName(args.Name);
+            string assemblyPath;
+
+            string[] paths = new string[]
+            {
+                Environment.CurrentDirectory
+            };
+
+            foreach (string path in paths)
+            {
+                assemblyPath = Path.Combine(path, assemblyName.Name + ".dll");
+                if (File.Exists(assemblyPath))
+                    return Assembly.LoadFile(assemblyPath);
+
+                assemblyPath = Path.Combine(path, assemblyName.Name + ".exe");
+                if (File.Exists(assemblyPath))
+                    return Assembly.LoadFile(assemblyPath);
+            }
+
+            //Console.WriteLine("Could not found " + assemblyName);
+
+            return null;
+        }
+#endif
 
         private static void EnsureValidDispatchRecipient(ref string[] args)
         {
